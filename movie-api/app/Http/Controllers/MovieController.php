@@ -2,93 +2,74 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Movie;
+use App\Services\TmdbService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Http\JsonResponse;
 
 class MovieController extends Controller
 {
-    public function index(Request $request)
+    protected $tmdbService;
+
+    public function __construct(TmdbService $tmdbService)
     {
-        $query = Movie::query();
+        $this->tmdbService = $tmdbService;
+    }
 
-        if ($request->filled('search')) {
-            $query->where('title', 'like', "%{$request->search}%");
-        }
+    public function index(Request $request): JsonResponse
+    {
+        $category = $request->get('category', 'popular');
+        $page = $request->get('page', 1);
 
-        if ($request->filled('category') && $request->category !== 'all') {
-            $query->where('category', $request->category);
-        }
-
-        $movies = $query->orderBy('created_at', 'desc')->paginate(12);
-
-        // TMDB FALLBACK IF DB EMPTY
-        if ($movies->isEmpty()) {
-            $movies = $this->fetchFromTMDB($request);
-        }
+        $data = $this->tmdbService->getMovies($category, $page);
 
         return response()->json([
-            'status' => 'success',
-            'data' => $movies->items(),
+            'success' => true,
+            'data' => $data['results'],
             'pagination' => [
-                'current_page' => $movies->currentPage(),
-                'total' => $movies->total(),
-                'per_page' => $movies->perPage(),
-                'total_pages' => $movies->lastPage()
+                'current_page' => $page,
+                'total_pages' => $data['total_pages'],
             ]
         ]);
     }
 
-    public function show($id)
+    public function show($id): JsonResponse
     {
-        $movie = Movie::findOrFail($id);
+        try {
+            $movie = $this->tmdbService->getMovieDetails($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $movie
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Movie not found'
+            ], 404);
+        }
+    }
+
+    public function search(Request $request): JsonResponse
+    {
+        $query = $request->get('query');
+        $page = $request->get('page', 1);
+
+        if (!$query) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Search query is required'
+            ], 400);
+        }
+
+        $data = $this->tmdbService->searchMovies($query, $page);
+
         return response()->json([
-            'status' => 'success',
-            'data' => $movie
+            'success' => true,
+            'data' => $data['results'],
+            'pagination' => [
+                'current_page' => $page,
+                'total_pages' => $data['total_pages'],
+            ]
         ]);
     }
-
- private function fetchFromTMDB(Request $request)
-{
-    $key = env('TMDB_API_KEY');
-    if (!$key) return collect([]);
-
-    try {
-        $endpoint = '/movie/now_playing';
-        $params = ['api_key' => $key, 'page' => $request->get('page', 1)];
-
-        if ($request->filled('search')) {
-            $endpoint = '/search/movie';
-            $params['query'] = $request->search;
-        } elseif ($request->filled('category') && $request->category !== 'all') {
-            $endpoint = '/discover/movie';
-            $params['with_original_language'] = $request->category === 'bollywood' ? 'hi' : 'en';
-        }
-
-        $response = Http::timeout(10)->get("https://api.themoviedb.org/3{$endpoint}", $params);
-
-        if (!$response->successful()) {
-            Log::error('TMDB API failed', ['status' => $response->status()]);
-            return collect([]);
-        }
-
-        return collect($response->json('results', []))->map(function ($tmdb) {
-            return (object) [
-                'id' => $tmdb['id'],
-                'tmdb_id' => $tmdb['id'], // Add TMDB ID
-                'title' => $tmdb['title'] ?? 'Unknown',
-                'poster_url' => $tmdb['poster_path']
-                    ? 'https://image.tmdb.org/t/p/w500' . $tmdb['poster_path']
-                    : null,
-                'release_year' => substr($tmdb['release_date'] ?? '2023', 0, 4),
-                'rating' => round($tmdb['vote_average'] ?? 0, 1),
-                'category' => str_contains(strtolower($tmdb['title']), 'bollywood') ? 'Bollywood' : 'Hollywood',
-            ];
-        });
-    } catch (\Exception $e) {
-        Log::error('TMDB Exception: ' . $e->getMessage());
-        return collect([]);
-    }
-}
 }
