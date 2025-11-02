@@ -1,62 +1,160 @@
 <template>
-  <q-page class="q-pa-md">
-    <h1 class="text-4xl font-bold mb-8 text-primary">Authorized Movie List</h1>
-
-    <div v-if="loading" class="text-center">
-      <q-spinner-hourglass color="primary" size="3em" />
-      <div class="q-mt-md">Loading films...</div>
+  <q-page class="q-pa-md bg-black text-white">
+    <!-- Hero Banner (Featured Movie) -->
+    <div class="hero q-mb-xl" v-if="featured">
+      <q-img :src="featured.poster_url" height="400px" class="rounded-borders">
+        <div class="absolute-bottom text-center bg-black bg-opacity-70 q-pa-sm">
+          <h2 class="text-h4">{{ featured.title }}</h2>
+          <q-btn color="red" label="Watch Now" :to="`/movie/${featured.id}`" flat />
+        </div>
+      </q-img>
     </div>
 
-    <div v-else-if="error" class="text-red-600">Error loading movies: {{ error.message }}</div>
-
-    <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <q-card v-for="movie in movies" :key="movie.id" class="shadow-lg border border-gray-200">
-        <q-card-section>
-          <div class="text-xl font-semibold q-mb-sm">{{ movie.title }}</div>
-          <q-badge color="secondary">{{ movie.genre }} ({{ movie.release_year }})</q-badge>
-        </q-card-section>
-
-        <q-card-section>
-          {{ movie.description }}
-        </q-card-section>
-
-        <q-card-actions align="right">
-          <q-btn
-            color="primary"
-            :href="movie.external_link"
-            target="_blank"
-            label="Watch/Download (Legal)"
-            flat
-          />
-        </q-card-actions>
-      </q-card>
+    <!-- Search + Category -->
+    <div class="row q-mb-lg items-center">
+      <div class="col-12 col-md-6">
+        <q-input v-model="search" dark filled placeholder="Search movies..." @input="fetch">
+          <template v-slot:prepend>
+            <q-icon name="search" />
+          </template>
+        </q-input>
+      </div>
+      <div class="col-12 col-md-6 q-mt-md md:q-mt-0">
+        <q-btn-toggle
+          v-model="category"
+          toggle-color="red"
+          :options="cats"
+          @update:model-value="fetch"
+          spread
+        />
+      </div>
     </div>
+
+    <!-- Movie Grid -->
+    <div class="row q-gutter-md">
+      <div v-for="m in movies" :key="m.id" class="col-6 col-sm-4 col-md-3 col-lg-2">
+        <q-card dark class="movie-card cursor-pointer" @click="$router.push(`/movie/${m.id}`)">
+          <q-img :src="m.poster_url" :ratio="2 / 3" spinner-color="red">
+            <template v-slot:error>
+              <div class="absolute-full flex flex-center bg-grey-9 text-white">No Image</div>
+            </template>
+            <div class="absolute-bottom text-center text-subtitle2 bg-black bg-opacity-70 q-pa-xs">
+              {{ m.title }}
+            </div>
+          </q-img>
+          <q-card-section class="q-pa-xs text-center">
+            <q-badge color="red">{{ m.release_year }}</q-badge>
+            <q-badge color="orange" class="q-ml-xs">⭐ {{ m.rating || 'N/A' }}</q-badge>
+          </q-card-section>
+        </q-card>
+      </div>
+    </div>
+
+    <!-- Pagination -->
+    <q-pagination
+      v-model="page"
+      :max="totalPages"
+      @update:model-value="fetch"
+      class="q-my-xl"
+      color="red"
+    />
   </q-page>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import axios from 'axios'
 
-// Reactive variables for state management
 const movies = ref([])
-const loading = ref(true)
-const error = ref(null)
+const featured = ref(null)
+const search = ref('')
+const category = ref('all')
+const page = ref(1)
+const totalPages = ref(1)
+const placeholder = 'https://placehold.co/300x450/111/fff?text=No+Image'
 
-// Function to fetch data from the Laravel API
-const fetchMovies = async () => {
+const cats = [
+  { label: 'All', value: 'all' },
+  { label: 'Bollywood', value: 'Bollywood' },
+  { label: 'Hollywood', value: 'Hollywood' },
+  { label: 'Web Series', value: 'Web Series' },
+]
+
+const fetch = async () => {
+  const params = { page: page.value }
+  if (search.value) params.search = search.value
+  if (category.value !== 'all') params.category = category.value
+
   try {
-    // Using the proxy configured in quasar.config.js
-    const response = await axios.get('/api/movies')
-    movies.value = response.data.data
-  } catch (err) {
-    console.error('API Fetch Error:', err)
-    error.value = err
-  } finally {
-    loading.value = false
+    const res = await axios.get('/api/movies', { params })
+    const rawMovies = res.data.data || []
+
+    const moviePromises = rawMovies.map(async (movie) => {
+      let poster = placeholder
+
+      try {
+        await new Promise((r) => setTimeout(r, 100))
+        poster = await fetchTMDBPoster(movie.title, movie.release_year)
+      } catch {
+        poster = placeholder
+      }
+
+      return {
+        ...movie,
+        poster_url: poster,
+      }
+    })
+
+    movies.value = await Promise.all(moviePromises)
+    totalPages.value = res.data.pagination?.total_pages || 1
+    featured.value = movies.value[0]
+  } catch {
+    console.error('API Error:')
   }
 }
 
-// Fetch movies when the component is mounted
-onMounted(fetchMovies)
+const fetchTMDBPoster = async (title, year = null) => {
+  const key = import.meta.env.VITE_TMDB_API_KEY
+  if (!key) return placeholder
+
+  try {
+    const params = { api_key: key, query: title }
+    if (year) params.year = year
+
+    for (let i = 0; i < 3; i++) {
+      try {
+        await new Promise((r) => setTimeout(r, i * 200))
+        const res = await axios.get('https://api.themoviedb.org/3/search/movie', {
+          params,
+          timeout: 5000,
+        })
+
+        const movie = res.data.results?.[0]
+        if (movie?.poster_path) {
+          return `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+        }
+      } catch (e) {
+        if (i === 2) console.warn('TMDB poster failed:', title, e)
+      }
+    }
+  } catch {
+    return placeholder
+  }
+
+  return placeholder
+}
+
+onMounted(fetch)
+watch([search, category, page], fetch)
 </script>
+
+<style scoped>
+.hero {
+  border-radius: 12px;
+  overflow: hidden;
+}
+.movie-card:hover {
+  transform: scale(1.05);
+  transition: 0.3s;
+}
+</style>

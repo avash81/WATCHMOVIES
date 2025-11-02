@@ -4,93 +4,91 @@ namespace App\Http\Controllers;
 
 use App\Models\Movie;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class MovieController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function index()
+    public function index(Request $request)
     {
-        // 🚨 IMPORTANT: If the database connection fails here, Laravel might fall back to a 404 or the welcome page.
-        try {
-            $movies = Movie::orderBy('created_at', 'desc')->get();
-        } catch (\Exception $e) {
-            // Check if the connection is really the problem.
-            return response()->json(['status' => 'error', 'message' => 'Database Query Failed'], 500);
+        $query = Movie::query();
+
+        if ($request->filled('search')) {
+            $query->where('title', 'like', "%{$request->search}%");
+        }
+
+        if ($request->filled('category') && $request->category !== 'all') {
+            $query->where('category', $request->category);
+        }
+
+        $movies = $query->orderBy('created_at', 'desc')->paginate(12);
+
+        // TMDB FALLBACK IF DB EMPTY
+        if ($movies->isEmpty()) {
+            $movies = $this->fetchFromTMDB($request);
         }
 
         return response()->json([
             'status' => 'success',
-            'data' => $movies
+            'data' => $movies->items(),
+            'pagination' => [
+                'current_page' => $movies->currentPage(),
+                'total' => $movies->total(),
+                'per_page' => $movies->perPage(),
+                'total_pages' => $movies->lastPage()
+            ]
         ]);
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
+    public function show($id)
     {
-        //
+        $movie = Movie::findOrFail($id);
+        return response()->json([
+            'status' => 'success',
+            'data' => $movie
+        ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+ private function fetchFromTMDB(Request $request)
+{
+    $key = env('TMDB_API_KEY');
+    if (!$key) return collect([]);
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Movie  $movie
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Movie $movie)
-    {
-        //
-    }
+    try {
+        $endpoint = '/movie/now_playing';
+        $params = ['api_key' => $key, 'page' => $request->get('page', 1)];
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Movie  $movie
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Movie $movie)
-    {
-        //
-    }
+        if ($request->filled('search')) {
+            $endpoint = '/search/movie';
+            $params['query'] = $request->search;
+        } elseif ($request->filled('category') && $request->category !== 'all') {
+            $endpoint = '/discover/movie';
+            $params['with_original_language'] = $request->category === 'bollywood' ? 'hi' : 'en';
+        }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Movie  $movie
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Movie $movie)
-    {
-        //
-    }
+        $response = Http::timeout(10)->get("https://api.themoviedb.org/3{$endpoint}", $params);
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Movie  $movie
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Movie $movie)
-    {
-        //
+        if (!$response->successful()) {
+            Log::error('TMDB API failed', ['status' => $response->status()]);
+            return collect([]);
+        }
+
+        return collect($response->json('results', []))->map(function ($tmdb) {
+            return (object) [
+                'id' => $tmdb['id'],
+                'tmdb_id' => $tmdb['id'], // Add TMDB ID
+                'title' => $tmdb['title'] ?? 'Unknown',
+                'poster_url' => $tmdb['poster_path']
+                    ? 'https://image.tmdb.org/t/p/w500' . $tmdb['poster_path']
+                    : null,
+                'release_year' => substr($tmdb['release_date'] ?? '2023', 0, 4),
+                'rating' => round($tmdb['vote_average'] ?? 0, 1),
+                'category' => str_contains(strtolower($tmdb['title']), 'bollywood') ? 'Bollywood' : 'Hollywood',
+            ];
+        });
+    } catch (\Exception $e) {
+        Log::error('TMDB Exception: ' . $e->getMessage());
+        return collect([]);
     }
+}
 }

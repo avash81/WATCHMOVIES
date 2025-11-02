@@ -1,8 +1,14 @@
 // app global css in SCSS form
 /* movie-client/src/css/app.scss */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+// @tailwind base;
+// @tailwind components;
+// @tailwind utilities;
 
 // Your Quasar app styles will start below these lines.
+@import 'quasar/src/css/variables.sass';
+
+// Your custom styles
+.q-page {
+  background: #000;
+}
