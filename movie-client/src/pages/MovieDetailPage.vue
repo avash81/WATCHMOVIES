@@ -65,24 +65,32 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
-
+// ....
+console.log('TMDB Key:', import.meta.env.VITE_TMDB_API_KEY)
+// .....
 const route = useRoute()
 const movie = ref(null)
 
 const fetchTMDBPoster = async (title) => {
-  const tmdbKey = import.meta.env.VITE_TMDB_API_KEY || 'YOUR_TMDB_KEY'
+  const tmdbKey = import.meta.env.VITE_TMDB_API_KEY
   if (!tmdbKey) return 'https://placehold.co/300x450/111/fff?text=No+Image'
 
   try {
-    const res = await axios.get(`https://api.themoviedb.org/3/search/movie`, {
+    console.log('Fetching TMDB Poster for:', title)
+    const res = await axios.get('https://api.themoviedb.org/3/search/movie', {
       params: { api_key: tmdbKey, query: title },
     })
-    const movieData = res.data.results[0]
-    return movieData
-      ? `https://image.tmdb.org/t/p/w500${movieData.poster_path}`
-      : 'https://placehold.co/300x450/111/fff?text=No+Image'
+
+    const movieData = res.data.results && res.data.results.length > 0 ? res.data.results[0] : null
+
+    if (!movieData || !movieData.poster_path) {
+      console.warn('No TMDB poster found for:', title)
+      return 'https://placehold.co/300x450/111/fff?text=No+Image'
+    }
+
+    return `https://image.tmdb.org/t/p/w500${movieData.poster_path}`
   } catch (err) {
-    console.error('TMDB Error:', err)
+    console.error('TMDB Error for:', title, err)
     return 'https://placehold.co/300x450/111/fff?text=No+Image'
   }
 }
