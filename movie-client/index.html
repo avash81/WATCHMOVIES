@@ -1,24 +1,253 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
-    <title><%= productName %></title>
-
-    <meta charset="utf-8" />
-    <meta name="description" content="<%= productDescription %>" />
-    <meta name="format-detection" content="telephone=no" />
-    <meta name="msapplication-tap-highlight" content="no" />
-    <meta
-      name="viewport"
-      content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width<% if (ctx.mode.cordova || ctx.mode.capacitor) { %>, viewport-fit=cover<% } %>"
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WATCHMOVIES - Stream HD Movies & TV Shows</title>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+      rel="stylesheet"
     />
-
-    <link rel="icon" type="image/png" sizes="128x128" href="icons/favicon-128x128.png" />
-    <link rel="icon" type="image/png" sizes="96x96" href="icons/favicon-96x96.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="icons/favicon-16x16.png" />
-    <link rel="icon" type="image/ico" href="favicon.ico" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
+    <!-- DO NOT remove the following comment -->
     <!-- quasar:entry-point -->
+
+    <!-- Header -->
+    <header class="header">
+      <nav class="navbar">
+        <div class="nav-container">
+          <div class="nav-logo">
+            <a href="index.html" class="logo-link">
+              <img src="assets/logo.png" alt="WATCHMOVIES" class="logo" />
+              <span>WATCHMOVIES</span>
+            </a>
+          </div>
+
+          <div class="nav-search">
+            <div class="search-container">
+              <input
+                type="text"
+                id="searchInput"
+                placeholder="Search movies, TV shows..."
+                class="search-input"
+              />
+              <button class="search-btn">
+                <i class="fas fa-search"></i>
+              </button>
+              <div class="search-results" id="searchResults"></div>
+            </div>
+          </div>
+
+          <div class="nav-menu">
+            <a href="index.html" class="nav-link active">Home</a>
+            <div class="dropdown">
+              <a href="#" class="nav-link">Movies <i class="fas fa-chevron-down"></i></a>
+              <div class="dropdown-content">
+                <a href="movies.html?category=bollywood">Bollywood</a>
+                <a href="movies.html?category=hollywood">Hollywood</a>
+                <a href="movies.html?category=south">South Indian</a>
+                <a href="movies.html?category=dubbed">Hindi Dubbed</a>
+              </div>
+            </div>
+            <div class="dropdown">
+              <a href="#" class="nav-link">TV Series <i class="fas fa-chevron-down"></i></a>
+              <div class="dropdown-content">
+                <a href="series.html?category=web">Web Series</a>
+                <a href="series.html?category=tv">TV Shows</a>
+              </div>
+            </div>
+            <a href="genre.html" class="nav-link">Genre</a>
+            <a href="request.html" class="nav-link">Request</a>
+          </div>
+
+          <div class="nav-mobile-toggle">
+            <i class="fas fa-bars"></i>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+      <div class="hero-content">
+        <h1 class="hero-title">Unlimited Movies, TV Shows & More</h1>
+        <p class="hero-subtitle">Stream HD content in multiple languages with premium quality</p>
+        <div class="hero-search">
+          <input
+            type="text"
+            placeholder="What do you want to watch today?"
+            class="hero-search-input"
+          />
+          <button class="hero-search-btn">Search</button>
+        </div>
+      </div>
+      <div class="hero-overlay"></div>
+    </section>
+
+    <!-- Security Alert -->
+    <div class="security-alert">
+      <div class="container">
+        <div class="alert-content">
+          <i class="fas fa-shield-alt"></i>
+          <span
+            >⚠️ Avoid FAKE copies of WATCHMOVIES. Always use official domain with VPN for
+            security.</span
+          >
+          <a href="#" class="discord-link">
+            <i class="fab fa-discord"></i>
+            Join Discord for Updates
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+      <div class="container">
+        <!-- Latest Releases Section -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">Latest Releases</h2>
+            <a href="movies.html?filter=latest" class="view-all"
+              >View All <i class="fas fa-arrow-right"></i
+            ></a>
+          </div>
+          <div class="movies-grid" id="latestMovies">
+            <!-- Movies will be loaded dynamically -->
+          </div>
+        </section>
+
+        <!-- Popular Movies Section -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">Popular Movies</h2>
+            <a href="movies.html?filter=popular" class="view-all"
+              >View All <i class="fas fa-arrow-right"></i
+            ></a>
+          </div>
+          <div class="movies-grid" id="popularMovies">
+            <!-- Movies will be loaded dynamically -->
+          </div>
+        </section>
+
+        <!-- TV Series Section -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">TV Series</h2>
+            <a href="series.html" class="view-all">View All <i class="fas fa-arrow-right"></i></a>
+          </div>
+          <div class="movies-grid" id="tvSeries">
+            <!-- Series will be loaded dynamically -->
+          </div>
+        </section>
+
+        <!-- Categories Section -->
+        <section class="section">
+          <div class="section-header">
+            <h2 class="section-title">Browse by Category</h2>
+          </div>
+          <div class="categories-grid">
+            <a href="movies.html?category=action" class="category-card">
+              <i class="fas fa-explosion"></i>
+              <span>Action</span>
+            </a>
+            <a href="movies.html?category=drama" class="category-card">
+              <i class="fas fa-theater-masks"></i>
+              <span>Drama</span>
+            </a>
+            <a href="movies.html?category=comedy" class="category-card">
+              <i class="fas fa-laugh"></i>
+              <span>Comedy</span>
+            </a>
+            <a href="movies.html?category=thriller" class="category-card">
+              <i class="fas fa-suspense"></i>
+              <span>Thriller</span>
+            </a>
+            <a href="movies.html?category=romance" class="category-card">
+              <i class="fas fa-heart"></i>
+              <span>Romance</span>
+            </a>
+            <a href="movies.html?genre=18+" class="category-card">
+              <i class="fas fa-restricted"></i>
+              <span>18+ Adult</span>
+            </a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <div class="container">
+        <div class="footer-content">
+          <div class="footer-section">
+            <div class="footer-logo">
+              <img src="assets/logo.png" alt="WATCHMOVIES" />
+              <span>WATCHMOVIES</span>
+            </div>
+            <p class="footer-description">
+              Your ultimate destination for HD movies, TV shows, and web series in multiple
+              languages and quality formats.
+            </p>
+            <div class="social-links">
+              <a href="#" class="social-link"><i class="fab fa-discord"></i></a>
+              <a href="#" class="social-link"><i class="fab fa-telegram"></i></a>
+              <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+            </div>
+          </div>
+
+          <div class="footer-section">
+            <h3>Quick Links</h3>
+            <ul class="footer-links">
+              <li><a href="index.html">Home</a></li>
+              <li><a href="movies.html">Movies</a></li>
+              <li><a href="series.html">TV Series</a></li>
+              <li><a href="genre.html">Genres</a></li>
+              <li><a href="request.html">Request Content</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-section">
+            <h3>Categories</h3>
+            <ul class="footer-links">
+              <li><a href="movies.html?category=bollywood">Bollywood</a></li>
+              <li><a href="movies.html?category=hollywood">Hollywood</a></li>
+              <li><a href="movies.html?category=south">South Indian</a></li>
+              <li><a href="movies.html?category=dubbed">Hindi Dubbed</a></li>
+              <li><a href="series.html?category=web">Web Series</a></li>
+            </ul>
+          </div>
+
+          <div class="footer-section">
+            <h3>Support</h3>
+            <ul class="footer-links">
+              <li><a href="how-to-download.html">How to Download</a></li>
+              <li><a href="disclaimer.html">Disclaimer</a></li>
+              <li><a href="contact.html">Contact Us</a></li>
+              <li><a href="dmca.html">DMCA</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="footer-bottom">
+          <p>&copy; 2024 WATCHMOVIES. All rights reserved. | Use VPN for secure streaming</p>
+          <div class="footer-disclaimer">
+            <p>
+              Disclaimer: We do not host any files on our server. All content provided is for
+              promotional purposes only.
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script src="js/movie-data.js"></script>
+    <script src="js/script.js"></script>
   </body>
 </html>

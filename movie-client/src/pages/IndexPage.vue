@@ -1,160 +1,177 @@
 <template>
-  <q-page class="q-pa-md bg-black text-white">
-    <!-- Hero Banner (Featured Movie) -->
-    <div class="hero q-mb-xl" v-if="featured">
-      <q-img :src="featured.poster_url" height="400px" class="rounded-borders">
-        <div class="absolute-bottom text-center bg-black bg-opacity-70 q-pa-sm">
-          <h2 class="text-h4">{{ featured.title }}</h2>
-          <q-btn color="red" label="Watch Now" :to="`/movie/${featured.id}`" flat />
+  <q-page class="bg-gray-900">
+    <!-- Hero Section -->
+    <section
+      class="relative h-96 lg:h-[500px] bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 overflow-hidden"
+    >
+      <div class="absolute inset-0 bg-black/50 z-10"></div>
+      <div
+        class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1489599809505-7c8e1c75ce13?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80')] bg-cover bg-center"
+      ></div>
+
+      <div class="relative z-20 container mx-auto px-4 h-full flex items-center">
+        <div class="max-w-2xl text-center mx-auto">
+          <h1 class="text-4xl lg:text-6xl font-bold text-white mb-4">
+            Unlimited <span class="text-gradient">Movies</span>, TV Shows & More
+          </h1>
+          <p class="text-xl text-gray-400 mb-8">
+            Stream HD content in multiple languages with premium quality. Latest releases updated
+            daily.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <q-btn
+              label="Explore Latest"
+              class="btn-primary"
+              icon="play_arrow"
+              @click="$router.push('/movies')"
+            />
+            <q-btn
+              label="Trending Now"
+              class="btn-secondary"
+              icon="whatshot"
+              @click="$router.push('/movies?filter=trending')"
+            />
+          </div>
         </div>
-      </q-img>
-    </div>
-
-    <!-- Search + Category -->
-    <div class="row q-mb-lg items-center">
-      <div class="col-12 col-md-6">
-        <q-input v-model="search" dark filled placeholder="Search movies..." @input="fetch">
-          <template v-slot:prepend>
-            <q-icon name="search" />
-          </template>
-        </q-input>
       </div>
-      <div class="col-12 col-md-6 q-mt-md md:q-mt-0">
-        <q-btn-toggle
-          v-model="category"
-          toggle-color="red"
-          :options="cats"
-          @update:model-value="fetch"
-          spread
-        />
-      </div>
-    </div>
+    </section>
 
-    <!-- Movie Grid -->
-    <div class="row q-gutter-md">
-      <div v-for="m in movies" :key="m.id" class="col-6 col-sm-4 col-md-3 col-lg-2">
-        <q-card dark class="movie-card cursor-pointer" @click="$router.push(`/movie/${m.id}`)">
-          <q-img :src="m.poster_url" :ratio="2 / 3" spinner-color="red">
-            <template v-slot:error>
-              <div class="absolute-full flex flex-center bg-grey-9 text-white">No Image</div>
-            </template>
-            <div class="absolute-bottom text-center text-subtitle2 bg-black bg-opacity-70 q-pa-xs">
-              {{ m.title }}
-            </div>
-          </q-img>
-          <q-card-section class="q-pa-xs text-center">
-            <q-badge color="red">{{ m.release_year }}</q-badge>
-            <q-badge color="orange" class="q-ml-xs">⭐ {{ m.rating || 'N/A' }}</q-badge>
-          </q-card-section>
-        </q-card>
+    <!-- Security Alert -->
+    <div class="bg-gradient-to-r from-red-600 to-orange-500 border-b border-red-600/50">
+      <div class="container mx-auto px-4 py-3">
+        <div
+          class="flex flex-col sm:flex-row items-center justify-center gap-4 text-sm font-medium"
+        >
+          <div class="flex items-center gap-2">
+            <q-icon name="security" />
+            <span
+              >Avoid FAKE copies of WATCHMOVIES. Always use official domain with VPN for
+              security.</span
+            >
+          </div>
+          <q-btn
+            flat
+            dense
+            class="bg-white/20 hover:bg-white/30 transition-colors"
+            icon="fab fa-discord"
+            label="Join Discord"
+          />
+        </div>
       </div>
     </div>
 
-    <!-- Pagination -->
-    <q-pagination
-      v-model="page"
-      :max="totalPages"
-      @update:model-value="fetch"
-      class="q-my-xl"
-      color="red"
-    />
+    <!-- Main Content -->
+    <div class="container mx-auto px-4 py-8">
+      <!-- Latest Releases -->
+      <section class="mb-12">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold text-white mb-2">Latest Releases</h2>
+          <router-link
+            to="/movies?filter=latest"
+            class="text-red-500 hover:text-orange-500 transition-colors font-semibold flex items-center gap-2"
+          >
+            View All
+            <q-icon name="arrow_forward" />
+          </router-link>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <movie-card v-for="movie in latestMovies" :key="movie.id" :movie="movie" />
+        </div>
+      </section>
+
+      <!-- Popular Movies -->
+      <section class="mb-12">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold text-white mb-2">Trending Now</h2>
+          <router-link
+            to="/movies?filter=popular"
+            class="text-red-500 hover:text-orange-500 transition-colors font-semibold flex items-center gap-2"
+          >
+            View All
+            <q-icon name="arrow_forward" />
+          </router-link>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          <movie-card v-for="movie in popularMovies" :key="movie.id" :movie="movie" />
+        </div>
+      </section>
+
+      <!-- Categories -->
+      <section class="mb-12">
+        <div class="flex items-center justify-between mb-8">
+          <h2 class="text-3xl font-bold text-white mb-2">Browse Categories</h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          <category-card
+            v-for="category in categories"
+            :key="category.name"
+            :category="category"
+            @click="$router.push(category.route)"
+          />
+        </div>
+      </section>
+    </div>
   </q-page>
 </template>
 
-<script setup>
-import { ref, onMounted, watch } from 'vue'
-import axios from 'axios'
+<script>
+import { defineComponent, ref } from 'vue'
+import MovieCard from 'components/MovieCard.vue'
+import CategoryCard from 'components/CategoryCard.vue'
 
-const movies = ref([])
-const featured = ref(null)
-const search = ref('')
-const category = ref('all')
-const page = ref(1)
-const totalPages = ref(1)
-const placeholder = 'https://placehold.co/300x450/111/fff?text=No+Image'
+export default defineComponent({
+  name: 'IndexPage',
+  components: {
+    MovieCard,
+    CategoryCard,
+  },
 
-const cats = [
-  { label: 'All', value: 'all' },
-  { label: 'Bollywood', value: 'Bollywood' },
-  { label: 'Hollywood', value: 'Hollywood' },
-  { label: 'Web Series', value: 'Web Series' },
-]
+  setup() {
+    const latestMovies = ref([
+      {
+        id: 1,
+        title: 'Bahubali: The Epic',
+        year: 2025,
+        poster: 'https://via.placeholder.com/300x450/1a1a1a/ffffff?text=Bahubali+2025',
+        quality: ['1080p', '720p', '480p'],
+        audio: ['Hindi', 'English'],
+        imdbRating: 8.2,
+        duration: '2h 28m',
+        genre: ['Action', 'Adventure', 'Drama'],
+        isNew: true,
+      },
+      // Add more movies...
+    ])
 
-const fetch = async () => {
-  const params = { page: page.value }
-  if (search.value) params.search = search.value
-  if (category.value !== 'all') params.category = category.value
+    const popularMovies = ref([
+      {
+        id: 6,
+        title: 'Spectre',
+        year: 2015,
+        poster: 'https://via.placeholder.com/300x450/1a1a1a/ffffff?text=Spectre',
+        quality: ['1080p', '720p', '480p'],
+        audio: ['Hindi', 'English'],
+        imdbRating: 6.8,
+        duration: '2h 28m',
+        genre: ['Action', 'Adventure', 'Thriller'],
+      },
+      // Add more movies...
+    ])
 
-  try {
-    const res = await axios.get('/api/movies', { params })
-    const rawMovies = res.data.data || []
+    const categories = ref([
+      { name: 'Bollywood', icon: 'movie', route: '/movies?category=bollywood' },
+      { name: 'Hollywood', icon: 'language', route: '/movies?category=hollywood' },
+      { name: 'South Indian', icon: 'public', route: '/movies?category=south' },
+      { name: 'Hindi Dubbed', icon: 'translate', route: '/movies?category=dubbed' },
+      { name: 'Web Series', icon: 'tv', route: '/series' },
+      { name: 'All Genres', icon: 'theater_comedy', route: '/genre' },
+    ])
 
-    const moviePromises = rawMovies.map(async (movie) => {
-      let poster = placeholder
-
-      try {
-        await new Promise((r) => setTimeout(r, 100))
-        poster = await fetchTMDBPoster(movie.title, movie.release_year)
-      } catch {
-        poster = placeholder
-      }
-
-      return {
-        ...movie,
-        poster_url: poster,
-      }
-    })
-
-    movies.value = await Promise.all(moviePromises)
-    totalPages.value = res.data.pagination?.total_pages || 1
-    featured.value = movies.value[0]
-  } catch {
-    console.error('API Error:')
-  }
-}
-
-const fetchTMDBPoster = async (title, year = null) => {
-  const key = import.meta.env.VITE_TMDB_API_KEY
-  if (!key) return placeholder
-
-  try {
-    const params = { api_key: key, query: title }
-    if (year) params.year = year
-
-    for (let i = 0; i < 3; i++) {
-      try {
-        await new Promise((r) => setTimeout(r, i * 200))
-        const res = await axios.get('https://api.themoviedb.org/3/search/movie', {
-          params,
-          timeout: 5000,
-        })
-
-        const movie = res.data.results?.[0]
-        if (movie?.poster_path) {
-          return `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-        }
-      } catch (e) {
-        if (i === 2) console.warn('TMDB poster failed:', title, e)
-      }
+    return {
+      latestMovies,
+      popularMovies,
+      categories,
     }
-  } catch {
-    return placeholder
-  }
-
-  return placeholder
-}
-
-onMounted(fetch)
-watch([search, category, page], fetch)
+  },
+})
 </script>
-
-<style scoped>
-.hero {
-  border-radius: 12px;
-  overflow: hidden;
-}
-.movie-card:hover {
-  transform: scale(1.05);
-  transition: 0.3s;
-}
-</style>

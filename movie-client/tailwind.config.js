@@ -10,7 +10,22 @@ module.exports = {
     './src/components/**/*.vue',
   ],
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        primary: '#e50914',
+        secondary: '#1a1a1a',
+        accent: '#ff6b00',
+        dark: {
+          900: '#0f0f0f',
+          800: '#1a1a1a',
+          700: '#262626',
+          600: '#333333',
+        },
+      },
+      backgroundImage: {
+        'gradient-primary': 'linear-gradient(135deg, #e50914 0%, #ff6b00 100%)',
+      },
+    },
   },
   plugins: [],
 }

@@ -1,80 +1,56 @@
 <template>
-  <q-card class="movie-card cursor-pointer" flat @click="$emit('click', movie)">
-    <q-img :src="posterUrl" :alt="movie.title" ratio="2/3" class="movie-poster">
-      <template v-slot:error>
-        <div class="absolute-full flex flex-center bg-grey-8 text-white">
-          <q-icon name="local_movies" size="xl" />
-        </div>
-      </template>
-
-      <div class="absolute-top-right q-pa-xs">
-        <q-badge color="primary" transparent> ⭐ {{ rating }} </q-badge>
+  <div class="movie-card group cursor-pointer" @click="$router.push(`/movie/${movie.id}`)">
+    <div class="relative overflow-hidden">
+      <q-img
+        :src="movie.poster"
+        :alt="movie.title"
+        class="w-full h-64 object-cover group-hover:scale-110 transition-transform duration-300"
+        ratio="2/3"
+      />
+      <div
+        class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      ></div>
+      <div class="absolute top-2 left-2 flex gap-2">
+        <span v-if="movie.isNew" class="quality-badge bg-green-500">NEW</span>
+        <span class="quality-badge">{{ movie.quality[0] }}</span>
       </div>
-
-      <div class="absolute-bottom overlay-gradient">
-        <div class="q-pa-sm">
-          <div class="text-h6 text-white text-weight-bold ellipsis">
-            {{ movie.title }}
-          </div>
-          <div class="text-caption text-grey-4">
-            {{ releaseYear }}
-          </div>
+      <div class="absolute bottom-2 left-2">
+        <div class="rating-badge">
+          <q-icon name="star" size="12px" />
+          <span>{{ movie.imdbRating }}</span>
         </div>
       </div>
-    </q-img>
-  </q-card>
+      <div
+        class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+      >
+        <q-btn
+          class="btn-primary transform scale-90 group-hover:scale-100 transition-transform"
+          icon="play_arrow"
+          label="Watch Now"
+          @click.stop="$router.push(`/movie/${movie.id}`)"
+        />
+      </div>
+    </div>
+    <div class="p-4">
+      <h3 class="font-semibold text-white mb-2 truncate">{{ movie.title }}</h3>
+      <div class="flex justify-between items-center text-sm text-gray-400">
+        <span>{{ movie.year }}</span>
+        <span>{{ movie.duration }}</span>
+      </div>
+    </div>
+  </div>
 </template>
 
-<script setup>
-import { computed } from 'vue'
+<script>
+import { defineComponent } from 'vue'
 
-const props = defineProps({
-  movie: {
-    type: Object,
-    required: true,
+export default defineComponent({
+  name: 'MovieCard',
+  props: {
+    movie: {
+      type: Object,
+      required: true,
+    },
   },
 })
-
-defineEmits(['click'])
-
-const posterUrl = computed(() => {
-  if (props.movie.poster_path) {
-    return `${import.meta.env.VITE_TMDB_IMAGE_BASE_URL}/w500${props.movie.poster_path}`
-  }
-  return '/images/placeholder-movie.png'
-})
-
-const rating = computed(() => {
-  return props.movie.vote_average?.toFixed(1) || 'N/A'
-})
-
-const releaseYear = computed(() => {
-  if (props.movie.release_date) {
-    return new Date(props.movie.release_date).getFullYear()
-  }
-  return 'TBA'
-})
 </script>
-
-<style scoped>
-.movie-card {
-  transition:
-    transform 0.3s ease,
-    box-shadow 0.3s ease;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.movie-card:hover {
-  transform: translateY(-8px);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-}
-
-.movie-poster {
-  border-radius: 12px;
-}
-
-.overlay-gradient {
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, transparent 100%);
-}
-</style>
